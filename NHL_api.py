@@ -33,11 +33,11 @@ def setUpDatabase(db_name):
     cur = conn.cursor()
     return cur, conn
 
-def create_nhltable(cur, conn):
+def create_nhlplayerstable(cur, conn):
     cur.execute(
         '''
         CREATE TABLE IF NOT EXISTS nhlplayers (
-        playerId INTEGER PRIMARY KEY, position TEXT, firstName TEXT, lastName TEXT, height INTEGER, weight INTEGER
+        playerId INTEGER PRIMARY KEY, position TEXT, firstName TEXT, lastName TEXT
         )
         '''
 
@@ -56,16 +56,61 @@ def add_players(filename, cur, conn):
             position = data['position']
             first_name = data['firstName']
             last_name = data['lastName']
-            height = data['height']
-            weight = data['weight']
+            
 
             cur.execute(
                 """
                 INSERT OR IGNORE 
-                INTO nhlplayers (playerId, position, firstName, lastName, height, weight)
-                VALUES (?, ?, ?, ?, ?, ?)
+                INTO nhlplayers (playerId, position, firstName, lastName)
+                VALUES (?, ?, ?, ?)
                 """,
-                (player_id, position, first_name, last_name, height, weight)
+                (player_id, position, first_name, last_name)
+            )
+
+        # Commit the changes after the loop
+        conn.commit()
+
+    except json.JSONDecodeError as e:
+        print(f"Error decoding JSON data: {e}")
+
+
+#create the table with the players height and weight
+def create_nhl_heightweight_table(cur, conn):
+    cur.execute(
+        '''
+        CREATE TABLE IF NOT EXISTS nhl_height_weight (
+        playerId INTEGER PRIMARY KEY, position TEXT, height INTEGER, weight INTEGER
+        )
+        '''
+
+
+    )
+    conn.commit()
+
+
+#fill the table with the information from the json storing the api data
+
+def add_height_weight(filename, cur, conn):
+            # Load .json file and read job data
+    with open(os.path.abspath(os.path.join(os.path.dirname(__file__), filename))) as f:
+        file_data = f.read()
+
+    try:
+        players = json.loads(file_data)
+        for data in players['data']:
+            player_id = data['playerId']
+            position = data['position']
+            height = data['height']
+            weight = data['weight']
+            
+
+            cur.execute(
+                """
+                INSERT OR IGNORE 
+                INTO nhl_height_weight (playerId, position, height, weight)
+                VALUES (?, ?, ?, ?)
+                """,
+                (player_id, position, height, weight)
             )
 
         # Commit the changes after the loop
@@ -79,16 +124,13 @@ def add_players(filename, cur, conn):
 def main():
     # SETUP DATABASE AND TABLE
     cur, conn = setUpDatabase('nhlplayers.db')
-    create_nhltable(cur, conn)
+    create_nhlplayerstable(cur, conn)
 
-    add_players("nhlapi.json",cur, conn)
+    add_players("nhlapi.json", cur, conn)
 
-    # job_and_hire_date(cur, conn)
+    create_nhl_heightweight_table(cur,conn)
 
-    # wrong_salary = (problematic_salary(cur, conn))
-    # print(wrong_salary)
-
-    # visualization_salary_data(cur,conn)
+    add_height_weight("nhlapi.json", cur, conn)
 
 if __name__ == "__main__":
     main()
