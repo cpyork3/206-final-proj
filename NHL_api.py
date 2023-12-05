@@ -23,7 +23,6 @@ def load_nhljson(url, file_path):
     except Exception as e:
         print(f"Error: {e}")
 
-# Example usage
 url = 'https://records.nhl.com/site/api/draft'
 file_path = 'nhlapi.json'
 load_nhljson(url, file_path)
