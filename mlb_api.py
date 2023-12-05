@@ -31,27 +31,28 @@ def create_json(url, json_file):
 # create 3 tables
     # playerinfo, playerid, heightid
 def create_tables(conn, cur):
+    
     # create table with player ids and names
     cur.execute('''CREATE TABLE IF NOT EXISTS mlb_playerids 
                 (id INTEGER PRIMARY KEY, name TEXT)''')
+    
     # create table with playerid, positionid, height, weight
     cur.execute('''CREATE TABLE IF NOT EXISTS mlb_playerinfo 
                 (id INTEGER PRIMARY KEY, pos_id INTEGER, height INTEGER, weight INTEGER)''')
-    # create table with height strings and equal amt in inches
-    # cur.execute('''CREATE TABLE IF NOT EXISTS heightid 
-    #             (id INTEGER PRIMARY KEY, height TEXT, inches INTEGER)''')
+
     conn.commit()
     return
 
 # add values from json to database
 def add_values(conn, cur, file_name):
+
     # create list of dicts from json
     with open(file_name) as file:
         data = json.load(file)
+
         # loop through list, add data to each table
         for player in data:
-            if player['id'] == 676265:
-                print(player)
+
             # extract height in inches from height string
             temp = re.findall(r'\d+', player['height'])
             height = int(temp[0])*12 + int(temp[1])
