@@ -37,7 +37,7 @@ def create_nhltable(cur, conn):
     cur.execute(
         '''
         CREATE TABLE IF NOT EXISTS nhlplayers (
-        playerId INTEGER PRIMARY KEY, firstName TEXT, lastName TEXT, height INTEGER, weight INTEGER
+        playerId INTEGER PRIMARY KEY, position TEXT, firstName TEXT, lastName TEXT, height INTEGER, weight INTEGER
         )
         '''
 
@@ -53,6 +53,7 @@ def add_players(filename, cur, conn):
         players = json.loads(file_data)
         for data in players['data']:
             player_id = data['playerId']
+            position = data['position']
             first_name = data['firstName']
             last_name = data['lastName']
             height = data['height']
@@ -61,10 +62,10 @@ def add_players(filename, cur, conn):
             cur.execute(
                 """
                 INSERT OR IGNORE 
-                INTO nhlplayers (playerId, firstName, lastName, height, weight)
-                VALUES (?, ?, ?, ?, ?)
+                INTO nhlplayers (playerId, position, firstName, lastName, height, weight)
+                VALUES (?, ?, ?, ?, ?, ?)
                 """,
-                (player_id, first_name, last_name, height, weight)
+                (player_id, position, first_name, last_name, height, weight)
             )
 
         # Commit the changes after the loop
@@ -72,33 +73,6 @@ def add_players(filename, cur, conn):
 
     except json.JSONDecodeError as e:
         print(f"Error decoding JSON data: {e}")
-
-
-
-
-
-    # #load .json file and read job data
-    # #THIS IS TO READ IN DATA
-    # f = open(os.path.abspath(os.path.join(os.path.dirname(__file__), filename)))
-    # file_data = f.read()
-    # f.close()
-    # # THE REST
-    # players = json.loads(file_data)
-    # for data in players:
-    #     player_id = data['playerId']
-    #     first_name = data['firstName']
-    #     last_name = data['lastName']
-    #     height = data['height']
-    #     weight = data['weight']
-
-    #     cur.execute(
-    #         """
-    #         INSERT OR IGNORE 
-    #         INTO nhlplayers (playerId, firstName, lastName, height, weight)
-    #         VALUES (?, ?, ?, ?, ?)
-    #         """,
-    #         (player_id, first_name, last_name, height, weight)
-    #         )
 
 
 
