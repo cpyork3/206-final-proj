@@ -80,7 +80,7 @@ def create_nhl_heightweight_table(cur, conn):
     cur.execute(
         '''
         CREATE TABLE IF NOT EXISTS nhl_height_weight (
-        playerId INTEGER PRIMARY KEY, draft_year INTEGER, position TEXT, height INTEGER, weight INTEGER
+        playerId INTEGER PRIMARY KEY, draft_year INTEGER, height INTEGER, weight INTEGER
         )
         '''
 
@@ -104,7 +104,6 @@ def add_height_weight(filename, cur, conn):
             if draft_year > 2018:
                 player_id = data['playerId']
                 draft_year = data['draftYear']
-                position = data['position']
                 height = data['height']
                 weight = data['weight']
             
@@ -112,10 +111,10 @@ def add_height_weight(filename, cur, conn):
                 cur.execute(
                     """
                     INSERT OR IGNORE 
-                    INTO nhl_height_weight (playerId, draft_year, position, height, weight)
-                    VALUES (?, ?, ?, ?, ?)
+                    INTO nhl_height_weight (playerId, draft_year, height, weight)
+                    VALUES (?, ?, ?, ?)
                     """,
-                    (player_id, draft_year, position, height, weight)
+                    (player_id, draft_year, height, weight)
                 )
 
         # Commit the changes after the loop
