@@ -46,30 +46,65 @@ def create_tables(conn, cur):
 # add values from json to database
 def add_values(conn, cur, file_name):
 
+    # set limit of 25 items at a time 
+        # run query to select all ids from database, if player data id already in database, skip it
+
     # create list of dicts from json
     with open(file_name) as file:
         data = json.load(file)
 
-        # loop through list, add data to each table
-        for player in data:
+        # get number of observations in table in db
+        cur.execute('SELECT COUNT(id) FROM mlb_playerids')
+        num_rows = cur.fetchone()[0]
 
-            # extract height in inches from height string
-            temp = re.findall(r'\d+', player['height'])
-            height = int(temp[0])*12 + int(temp[1])
+        if num_rows == None:
+            num_rows = 0
+        print(num_rows)
+    
+        # can stop limiting after 4 runs
+        if num_rows <= 100:
 
-            # add info to playerid table
-            cur.execute('''INSERT OR IGNORE INTO mlb_playerids 
-                        (id, name) 
-                        VALUES (?,?)''',
-                        (player['id'], player['fullName']))
+            # loop through list, add data to each table
+            for player in data[num_rows:num_rows+25]:
 
-            # add info to playerinfo table
-            cur.execute('''INSERT OR IGNORE INTO mlb_playerinfo 
-                        (id, pos_id, height, weight) 
-                        VALUES (?,?,?,?)''',
-                        (player['id'], player['primaryPosition']['code'], height, player['weight'])) 
+                # extract height in inches from height string
+                temp = re.findall(r'\d+', player['height'])
+                height = int(temp[0])*12 + int(temp[1])
+
+                # add info to playerid table
+                cur.execute('''INSERT OR IGNORE INTO mlb_playerids 
+                            (id, name) 
+                            VALUES (?,?)''',
+                            (player['id'], player['fullName']))
+
+                # add info to playerinfo table
+                cur.execute('''INSERT OR IGNORE INTO mlb_playerinfo 
+                            (id, pos_id, height, weight) 
+                            VALUES (?,?,?,?)''',
+                            (player['id'], player['primaryPosition']['code'], height, player['weight']))
+
+                conn.commit() 
             
-            conn.commit()
+        else: # if already have 100 rows:
+            for player in data[num_rows:]:
+
+                # extract height in inches from height string
+                temp = re.findall(r'\d+', player['height'])
+                height = int(temp[0])*12 + int(temp[1])
+
+                # add info to playerid table
+                cur.execute('''INSERT OR IGNORE INTO mlb_playerids 
+                            (id, name) 
+                            VALUES (?,?)''',
+                            (player['id'], player['fullName']))
+
+                # add info to playerinfo table
+                cur.execute('''INSERT OR IGNORE INTO mlb_playerinfo 
+                            (id, pos_id, height, weight) 
+                            VALUES (?,?,?,?)''',
+                            (player['id'], player['primaryPosition']['code'], height, player['weight'])) 
+                
+                conn.commit()
     
     return
 
@@ -77,9 +112,13 @@ def main():
     cur, conn = create_conn('final_proj.db')
     players_url = '''https://statsapi.mlb.com/api/v1/sports/1/players?season=2022'''
     json_file = 'mlb_players.json'
+    # if json file already exists, dont keep creating
     create_json(players_url, json_file)
     create_tables(conn, cur)
+
     add_values(conn, cur, json_file)
+        
+    # add_values(conn, cur, json_file)
     print('done')
 
 
