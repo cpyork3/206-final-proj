@@ -5,13 +5,13 @@ import json
 import re
 
 # create connection
-def create_conn(db_name):
-    # parameters: name of database
-    # returns: connection and cursor object
-    conn = sqlite3.connect(db_name)
-    cur = conn.cursor()
-    print(f'Connection to database {db_name} established')
-    return cur, conn
+# def create_conn(db_name):
+#     # parameters: name of database
+#     # returns: connection and cursor object
+#     conn = sqlite3.connect(db_name)
+#     cur = conn.cursor()
+#     print(f'Connection to database {db_name} established')
+#     return cur, conn
 
 # get api data as json file
 def create_json(url, json_file):
@@ -127,15 +127,33 @@ def create_position_table(cur, conn):
     return
 
 def main():
-    cur, conn = create_conn('final_proj.db')
-    players_url = '''https://statsapi.mlb.com/api/v1/sports/1/players?season=2022'''
-    json_file = 'mlb_players.json'
-    # if json file already exists, dont keep creating
-    create_json(players_url, json_file)
-    create_tables(conn, cur)
-    create_position_table(cur, conn)
-    add_values(conn, cur, json_file)
-    print('done')
+    try:
+        # Create a connection
+        with sqlite3.connect("final_proj.db") as conn:
+            # Create a cursor
+            cur = conn.cursor()
+            
+            # get url
+            players_url = '''https://statsapi.mlb.com/api/v1/sports/1/players?season=2023'''
+
+            # create json file
+            json_file = 'mlb_players.json'
+
+            # create json file
+            create_json(players_url, json_file)
+
+            # create tables in database
+            create_tables(conn, cur)
+            create_position_table(cur, conn)
+
+            # add items to tables
+            add_values(conn, cur, json_file)
+
+        print('Connection closed')
+
+    except sqlite3.Error as e:
+        # Handle the error
+        print("SQLite error:", e)
 
 
 if __name__ == "__main__":
