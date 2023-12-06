@@ -8,8 +8,9 @@ import re
 def create_conn(db_name):
     # parameters: name of database
     # returns: connection and cursor object
-    conn = sqlite3.connect('final_proj.db')
+    conn = sqlite3.connect(db_name)
     cur = conn.cursor()
+    print(f'Connection to database {db_name} established')
     return cur, conn
 
 # get api data as json file
@@ -26,6 +27,8 @@ def create_json(url, json_file):
     with open(json_file,"w") as file:
         file.write(list_str)
 
+    print(f'JSON file {json_file} successfully created')
+
     return
 
 # create 3 tables
@@ -41,6 +44,8 @@ def create_tables(conn, cur):
                 (id INTEGER PRIMARY KEY, pos_id INTEGER, height INTEGER, weight INTEGER)''')
 
     conn.commit()
+
+    print('Created tables mlb_playerids and mlb_playerinfo')
     return
 
 # add values from json to database
@@ -59,7 +64,7 @@ def add_values(conn, cur, file_name):
 
         if num_rows == None:
             num_rows = 0
-        print(num_rows)
+        print('Number of rows in mlb_playerids and mlb_playerinfo: ', num_rows)
     
         # can stop limiting after 4 runs
         if num_rows <= 100:
@@ -105,7 +110,20 @@ def add_values(conn, cur, file_name):
                             (player['id'], player['primaryPosition']['code'], height, player['weight'])) 
                 
                 conn.commit()
+
+    print(f'Inserted data from {file_name} into tables mlb_playerids and mlb_playerinfo')
     
+    return
+
+def create_position_table(cur, conn):
+    position_dict = {1:'P', 2:'C', 3:'1B', 4:'2B', 5:'3B', 6:'SS', 7:'LF', 8:'CF', 9:'RF', 10:'DH'}
+    cur.execute('CREATE TABLE IF NOT EXISTS mlb_pos_ids (id INTEGER PRIMARY KEY, pos TEXT)')
+    for key, value in position_dict.items():
+        cur.execute('''INSERT OR IGNORE INTO mlb_pos_ids (id, pos)
+                VALUES (?, ?)''',
+                (key, value))
+    conn.commit()
+    print('Table mlb_pos_ids created')
     return
 
 def main():
@@ -115,10 +133,8 @@ def main():
     # if json file already exists, dont keep creating
     create_json(players_url, json_file)
     create_tables(conn, cur)
-
+    create_position_table(cur, conn)
     add_values(conn, cur, json_file)
-        
-    # add_values(conn, cur, json_file)
     print('done')
 
 
