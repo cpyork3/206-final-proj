@@ -1,8 +1,8 @@
 import sqlite3
-import os
 import urllib.request
 import json
 import re
+import os
 
 # create connection
 # def create_conn(db_name):
@@ -67,7 +67,7 @@ def add_values(conn, cur, file_name):
         print('Number of rows in mlb_playerids and mlb_playerinfo: ', num_rows)
     
         # can stop limiting after 4 runs
-        if num_rows <= 100:
+        if num_rows < 100:
 
             # loop through list, add data to each table
             for player in data[num_rows:num_rows+25]:
@@ -109,6 +109,14 @@ def add_values(conn, cur, file_name):
                             VALUES (?,?,?,?)''',
                             (player['id'], player['primaryPosition']['code'], height, player['weight'])) 
                 
+                # update position ids that are not numeric
+                cur.execute('''UPDATE mlb_playerinfo 
+                            SET pos_id = 12 
+                            WHERE pos_id = "Y"''')
+                cur.execute('''UPDATE mlb_playerinfo 
+                            SET pos_id = 11 
+                            WHERE pos_id = "O"''')
+                
                 conn.commit()
 
     print(f'Inserted data from {file_name} into tables mlb_playerids and mlb_playerinfo')
@@ -116,7 +124,7 @@ def add_values(conn, cur, file_name):
     return
 
 def create_position_table(cur, conn):
-    position_dict = {1:'P', 2:'C', 3:'1B', 4:'2B', 5:'3B', 6:'SS', 7:'LF', 8:'CF', 9:'RF', 10:'DH'}
+    position_dict = {1:'P', 2:'C', 3:'1B', 4:'2B', 5:'3B', 6:'SS', 7:'LF', 8:'CF', 9:'RF', 10:'DH', 11:'OF', 12:"2-Way"}
     cur.execute('CREATE TABLE IF NOT EXISTS mlb_pos_ids (id INTEGER PRIMARY KEY, pos TEXT)')
     for key, value in position_dict.items():
         cur.execute('''INSERT OR IGNORE INTO mlb_pos_ids (id, pos)
@@ -128,24 +136,21 @@ def create_position_table(cur, conn):
 
 def main():
     try:
-        # Create a connection
+        # create a connection
         with sqlite3.connect("final_proj.db") as conn:
-            # Create a cursor
+            # create a cursor
             cur = conn.cursor()
-            
             # get url
             players_url = '''https://statsapi.mlb.com/api/v1/sports/1/players?season=2023'''
-
             # create json file
             json_file = 'mlb_players.json'
-
             # create json file
-            create_json(players_url, json_file)
-
+            check_file = os.path.exists('/'+json_file)
+            if not check_file:
+                create_json(players_url, json_file)
             # create tables in database
             create_tables(conn, cur)
             create_position_table(cur, conn)
-
             # add items to tables
             add_values(conn, cur, json_file)
 
@@ -153,6 +158,8 @@ def main():
 
     except sqlite3.Error as e:
         # Handle the error
+        conn.close()
+        print('Connection closed')
         print("SQLite error:", e)
 
 
