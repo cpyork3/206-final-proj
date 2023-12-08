@@ -53,10 +53,12 @@ def plot_bar_charts(position_data):
     axes[0].bar(position_data.keys(), [data['average_height'] for data in position_data.values()])
     axes[0].set_title('Bar Chart of Average Height by Position')
     axes[0].set_ylabel('Average Height (inches)')
+    axes[0].set_ylim([65, 85])
 
     axes[1].bar(position_data.keys(), [data['average_weight'] for data in position_data.values()])
     axes[1].set_title('Bar Chart of Average Weight by Position')
     axes[1].set_ylabel('Average Weight (lbs)')
+    axes[1].set_ylim([150,250])
 
     plt.tight_layout()
     plt.show()
