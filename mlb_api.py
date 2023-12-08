@@ -1,16 +1,17 @@
 import sqlite3
-import os
 import urllib.request
 import json
 import re
+import os
 
 # create connection
-def create_conn(db_name):
-    # parameters: name of database
-    # returns: connection and cursor object
-    conn = sqlite3.connect('final_proj.db')
-    cur = conn.cursor()
-    return cur, conn
+# def create_conn(db_name):
+#     # parameters: name of database
+#     # returns: connection and cursor object
+#     conn = sqlite3.connect(db_name)
+#     cur = conn.cursor()
+#     print(f'Connection to database {db_name} established')
+#     return cur, conn
 
 # get api data as json file
 def create_json(url, json_file):
@@ -25,6 +26,8 @@ def create_json(url, json_file):
     # write to file
     with open(json_file,"w") as file:
         file.write(list_str)
+
+    print(f'JSON file {json_file} successfully created')
 
     return
 
@@ -41,46 +44,123 @@ def create_tables(conn, cur):
                 (id INTEGER PRIMARY KEY, pos_id INTEGER, height INTEGER, weight INTEGER)''')
 
     conn.commit()
+
+    print('Created tables mlb_playerids and mlb_playerinfo')
     return
 
 # add values from json to database
 def add_values(conn, cur, file_name):
 
+    # set limit of 25 items at a time 
+        # run query to select all ids from database, if player data id already in database, skip it
+
     # create list of dicts from json
     with open(file_name) as file:
         data = json.load(file)
 
-        # loop through list, add data to each table
-        for player in data:
+        # get number of observations in table in db
+        cur.execute('SELECT COUNT(id) FROM mlb_playerids')
+        num_rows = cur.fetchone()[0]
 
-            # extract height in inches from height string
-            temp = re.findall(r'\d+', player['height'])
-            height = int(temp[0])*12 + int(temp[1])
+        if num_rows == None:
+            num_rows = 0
+        print('Number of rows in mlb_playerids and mlb_playerinfo: ', num_rows)
+    
+        # can stop limiting after 4 runs
+        if num_rows < 100:
 
-            # add info to playerid table
-            cur.execute('''INSERT OR IGNORE INTO mlb_playerids 
-                        (id, name) 
-                        VALUES (?,?)''',
-                        (player['id'], player['fullName']))
+            # loop through list, add data to each table
+            for player in data[num_rows:num_rows+25]:
 
-            # add info to playerinfo table
-            cur.execute('''INSERT OR IGNORE INTO mlb_playerinfo 
-                        (id, pos_id, height, weight) 
-                        VALUES (?,?,?,?)''',
-                        (player['id'], player['primaryPosition']['code'], height, player['weight'])) 
+                # extract height in inches from height string
+                temp = re.findall(r'\d+', player['height'])
+                height = int(temp[0])*12 + int(temp[1])
+
+                # add info to playerid table
+                cur.execute('''INSERT OR IGNORE INTO mlb_playerids 
+                            (id, name) 
+                            VALUES (?,?)''',
+                            (player['id'], player['fullName']))
+
+                # add info to playerinfo table
+                cur.execute('''INSERT OR IGNORE INTO mlb_playerinfo 
+                            (id, pos_id, height, weight) 
+                            VALUES (?,?,?,?)''',
+                            (player['id'], player['primaryPosition']['code'], height, player['weight']))
+
+                conn.commit() 
             
-            conn.commit()
+        else: # if already have 100 rows:
+            for player in data[num_rows:]:
+
+                # extract height in inches from height string
+                temp = re.findall(r'\d+', player['height'])
+                height = int(temp[0])*12 + int(temp[1])
+
+                # add info to playerid table
+                cur.execute('''INSERT OR IGNORE INTO mlb_playerids 
+                            (id, name) 
+                            VALUES (?,?)''',
+                            (player['id'], player['fullName']))
+
+                # add info to playerinfo table
+                cur.execute('''INSERT OR IGNORE INTO mlb_playerinfo 
+                            (id, pos_id, height, weight) 
+                            VALUES (?,?,?,?)''',
+                            (player['id'], player['primaryPosition']['code'], height, player['weight'])) 
+                
+                # update position ids that are not numeric
+                cur.execute('''UPDATE mlb_playerinfo 
+                            SET pos_id = 12 
+                            WHERE pos_id = "Y"''')
+                cur.execute('''UPDATE mlb_playerinfo 
+                            SET pos_id = 11 
+                            WHERE pos_id = "O"''')
+                
+                conn.commit()
+
+    print(f'Inserted data from {file_name} into tables mlb_playerids and mlb_playerinfo')
     
     return
 
+def create_position_table(cur, conn):
+    position_dict = {1:'P', 2:'C', 3:'1B', 4:'2B', 5:'3B', 6:'SS', 7:'LF', 8:'CF', 9:'RF', 10:'DH', 11:'OF', 12:"2-Way"}
+    cur.execute('CREATE TABLE IF NOT EXISTS mlb_pos_ids (id INTEGER PRIMARY KEY, pos TEXT)')
+    for key, value in position_dict.items():
+        cur.execute('''INSERT OR IGNORE INTO mlb_pos_ids (id, pos)
+                VALUES (?, ?)''',
+                (key, value))
+    conn.commit()
+    print('Table mlb_pos_ids created')
+    return
+
 def main():
-    cur, conn = create_conn('final_proj.db')
-    players_url = '''https://statsapi.mlb.com/api/v1/sports/1/players?season=2022'''
-    json_file = 'mlb_players.json'
-    create_json(players_url, json_file)
-    create_tables(conn, cur)
-    add_values(conn, cur, json_file)
-    print('done')
+    try:
+        # create a connection
+        with sqlite3.connect("final_proj.db") as conn:
+            # create a cursor
+            cur = conn.cursor()
+            # get url
+            players_url = '''https://statsapi.mlb.com/api/v1/sports/1/players?season=2023'''
+            # create json file
+            json_file = 'mlb_players.json'
+            # create json file
+            check_file = os.path.exists('/'+json_file)
+            if not check_file:
+                create_json(players_url, json_file)
+            # create tables in database
+            create_tables(conn, cur)
+            create_position_table(cur, conn)
+            # add items to tables
+            add_values(conn, cur, json_file)
+
+        print('Connection closed')
+
+    except sqlite3.Error as e:
+        # Handle the error
+        conn.close()
+        print('Connection closed')
+        print("SQLite error:", e)
 
 
 if __name__ == "__main__":
