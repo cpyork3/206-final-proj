@@ -38,7 +38,7 @@ def create_nhlplayerstable(cur, conn):
     cur.execute(
         '''
         CREATE TABLE IF NOT EXISTS nhlplayers (
-        playerId INTEGER PRIMARY KEY, position TEXT, firstName TEXT, lastName TEXT
+        id INTEGER PRIMARY KEY, playerId INTEGER, position TEXT, firstName TEXT, lastName TEXT
         )
         '''
 
@@ -52,20 +52,31 @@ def add_players(filename, cur, conn):
 
     try:
         players = json.loads(file_data)
+        full_data = []
+        id = 0
         for data in players['data']:
             player_id = data['playerId']
             position = data['position']
             first_name = data['firstName']
             last_name = data['lastName']
+            full_data.append((id, player_id, position, first_name, last_name))
+            id += 1
             
-
+        # get how many data which is already in database
+        cur.execute('select id from nhlplayers order by id desc limit 1')
+        max_id = 0
+        try:
+            max_id = cur.fetchone()[0]
+        except:
+            max_id = 0
+        for i in range(max_id+1, max_id+26):
             cur.execute(
                 """
                 INSERT OR IGNORE 
-                INTO nhlplayers (playerId, position, firstName, lastName)
-                VALUES (?, ?, ?, ?)
+                INTO nhlplayers (id, playerId, position, firstName, lastName)
+                VALUES (? ,?, ?, ?, ?)
                 """,
-                (player_id, position, first_name, last_name)
+                full_data[i]
             )
 
         conn.commit()
@@ -79,7 +90,7 @@ def create_nhl_heightweight_table(cur, conn):
     cur.execute(
         '''
         CREATE TABLE IF NOT EXISTS nhl_height_weight (
-        playerId INTEGER PRIMARY KEY, draft_year INTEGER, height INTEGER, weight INTEGER
+        id INTEGER PRIMARY KEY, playerId INTEGER, height INTEGER, weight INTEGER
         )
         '''
 
@@ -89,42 +100,47 @@ def create_nhl_heightweight_table(cur, conn):
 
 
 #fill the table with the information from the json storing the api data
-# the height and weight table will only have players after 2013
 
 def add_height_weight(filename, cur, conn):
-            
+           # Load .json file and read job data
     with open(os.path.abspath(os.path.join(os.path.dirname(__file__), filename))) as f:
         file_data = f.read()
 
     try:
         players = json.loads(file_data)
+        full_data = []
+        id = 0
         for data in players['data']:
-            draft_year = data.get('draftYear', 0)
-            if draft_year > 2018:
-                player_id = data['playerId']
-                draft_year = data['draftYear']
-                height = data['height']
-                weight = data['weight']
+            player_id = data['playerId']
+            height = data['height']
+            weight = data['weight']
+            full_data.append((id, player_id, height, weight))
+            id += 1
             
+        # get how many data which is already in database
+        cur.execute('select id from nhl_height_weight order by id desc limit 1')
+        max_id = 0
+        try:
+            max_id = cur.fetchone()[0]
+        except:
+            max_id = 0
+        for i in range(max_id+1, max_id+26):
+            cur.execute(
+                """
+                INSERT OR IGNORE 
+                INTO nhl_height_weight (id, playerId, height, weight)
+                VALUES (? ,?, ?, ?)
+                """,
+                full_data[i]
+            )
 
-                cur.execute(
-                    """
-                    INSERT OR IGNORE 
-                    INTO nhl_height_weight (playerId, draft_year, height, weight)
-                    VALUES (?, ?, ?, ?)
-                    """,
-                    (player_id, draft_year, height, weight)
-                )
-
-        
         conn.commit()
 
     except json.JSONDecodeError as e:
         print(f"Error decoding JSON data: {e}")
-
+   
 
 #this calculates the average height and weight from the height_weight table
-# this is based on the players drafted in the past 5 years [2019-2023]
 def calculate_average_height_weight_all_players(cur):
     try:
         cur.execute('''
@@ -144,7 +160,7 @@ def calculate_average_height_weight_by_position(cur):
                    AVG(nhl_height_weight.height) AS avg_height,
                    AVG(nhl_height_weight.weight) AS avg_weight
             FROM nhlplayers
-            JOIN nhl_height_weight ON nhlplayers.playerId = nhl_height_weight.playerId
+            JOIN nhl_height_weight ON nhlplayers.id = nhl_height_weight.id
             WHERE nhlplayers.position IN ('D', 'RW', 'LW', 'C', 'G')
             GROUP BY nhlplayers.position
         ''')
@@ -158,7 +174,20 @@ def calculate_average_height_weight_by_position(cur):
         return None
     
 
-def visualize_data(avg_all_players, avg_by_position):
+def visualize_data(cur):
+    # Fetch average height and weight of all players
+    cur.execute("SELECT AVG(height) AS avg_height, AVG(weight) AS avg_weight FROM nhl_height_weight")
+    avg_all_players = dict(zip(('avg_height', 'avg_weight'), cur.fetchone()))
+
+    # Fetch average height and weight by position
+    cur.execute("""
+        SELECT nhlplayers.position, AVG(nhl_height_weight.height) AS avg_height, AVG(nhl_height_weight.weight) AS avg_weight
+        FROM nhl_height_weight
+        JOIN nhlplayers ON nhl_height_weight.playerId = nhlplayers.playerId
+        GROUP BY nhlplayers.position
+    """)
+    avg_by_position = [dict(zip(('position', 'avg_height', 'avg_weight'), entry)) for entry in cur.fetchall()]
+
     # Plot horizontal lines for average height and weight of all players
     plt.axhline(y=avg_all_players['avg_height'], color='blue', linestyle='--', label='Avg Height (All Players)')
     plt.axhline(y=avg_all_players['avg_weight'], color='red', linestyle='--', label='Avg Weight (All Players)')
@@ -179,14 +208,8 @@ def visualize_data(avg_all_players, avg_by_position):
     plt.grid(True)
     plt.show()
 
-avg_all_players = {'avg_height': 72.76, 'avg_weight': 184.56}
-avg_by_position = [{'position': 'C', 'avg_height': 72.16, 'avg_weight': 181.89},
-                   {'position': 'D', 'avg_height': 73.25, 'avg_weight': 188.46},
-                   {'position': 'G', 'avg_height': 74.86, 'avg_weight': 186.05},
-                   {'position': 'LW', 'avg_height': 72.35, 'avg_weight': 182.70},
-                   {'position': 'RW', 'avg_height': 71.90, 'avg_weight': 182.23}]
-
-visualize_data(avg_all_players, avg_by_position)
+# Assuming you have an open connection and cursor, call the function like this:
+    # visualize_data(cur)
 
 
 def main():
@@ -199,6 +222,8 @@ def main():
     create_nhl_heightweight_table(cur,conn)
 
     add_height_weight("nhlapi.json", cur, conn)
+
+    visualize_data(cur)
 
         # Calculate and print average height and weight of all players
     avg_all_players = calculate_average_height_weight_all_players(cur)
