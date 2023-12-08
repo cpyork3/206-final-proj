@@ -1,6 +1,7 @@
 import sqlite3
 import matplotlib.pyplot as plt
 import pandas as pd
+import seaborn as sns
 
 # run SQL query, get data as pandas dataframe
 def get_data_by_pos(cur):
@@ -42,23 +43,28 @@ def main():
             # create a cursor
             cur = conn.cursor()
             pos_df = get_data_by_pos(cur)
+            sns.set_palette("pastel")
+
             # Create subplots
-            fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(12, 6), sharey=False)
+            fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(12, 6))
 
             # Create boxplots for Weight in the first subplot
-            pos_df.boxplot(column='Weight', by='Position', ax=axes[0], grid=False)
+            sns.boxplot(x='Position', y='Weight', data=pos_df, ax=axes[0], width=0.4, linewidth=1.5)
             axes[0].set_title('Weight by Position')
             axes[0].set_xlabel('Position')
-            axes[0].set_ylabel('Weight')
+            axes[0].set_ylabel('Weight (lb)')
 
             # Create boxplots for Height in the second subplot
-            pos_df.boxplot(column='Height', by='Position', ax=axes[1], grid=False)
+            sns.boxplot(x='Position', y='Height', data=pos_df, ax=axes[1], width=0.4, linewidth=1.5)
             axes[1].set_title('Height by Position')
             axes[1].set_xlabel('Position')
-            axes[1].set_ylabel('Height')
+            axes[1].set_ylabel('Height (in)')
 
             # Adjust layout
-            plt.tight_layout()
+            plt.tight_layout(rect=[0, .03, 1, 0.96])
+
+            # Add a title to the overall figure
+            plt.suptitle('Distribution of Weight and Height by Position', y=.99, fontsize=16)
 
             # Show the plot
             plt.show()
