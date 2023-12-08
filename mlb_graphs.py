@@ -31,10 +31,6 @@ def get_data_by_pos(cur):
 
     return pos_df
 
-def create_boxplot(data):
-    # fig = plt.boxplot(data['Position'], )
-    pass
-
 def main():
     try:
         # create a connection
@@ -64,7 +60,7 @@ def main():
             plt.tight_layout(rect=[0, .03, 1, 0.96])
 
             # Add a title to the overall figure
-            plt.suptitle('Distribution of Weight and Height by Position', y=.99, fontsize=16)
+            plt.suptitle('MLB Distribution of Weight and Height by Position (2023)', y=.99, fontsize=16)
 
             # Show the plot
             plt.show()
