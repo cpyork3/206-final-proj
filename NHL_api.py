@@ -172,6 +172,14 @@ def calculate_average_height_weight_by_position(cur):
     except sqlite3.Error as e:
         print(f"SQLite error: {e}")
         return None
+
+def write_metrics_to_file(all_metrics, output_file='all_metrics_nhl.json'):
+    try:
+        with open(output_file, 'w') as file:
+            file.write(json.dumps(all_metrics, indent=2))
+        print(f"Metrics written to {output_file} successfully.")
+    except Exception as e:
+        print(f"Error writing metrics to JSON file: {e}")
     
 
 def visualize_data(cur):
@@ -208,9 +216,6 @@ def visualize_data(cur):
     plt.grid(True)
     plt.show()
 
-# Assuming you have an open connection and cursor, call the function like this:
-    # visualize_data(cur)
-
 
 def main():
     # SETUP DATABASE AND TABLE
@@ -222,8 +227,6 @@ def main():
     create_nhl_heightweight_table(cur,conn)
 
     add_height_weight("nhlapi.json", cur, conn)
-
-    visualize_data(cur)
 
         # Calculate and print average height and weight of all players
     avg_all_players = calculate_average_height_weight_all_players(cur)
@@ -242,6 +245,21 @@ def main():
             avg_height = result['avg_height']
             avg_weight = result['avg_weight']
             print(f"{position}: Avg Height: {avg_height:.2f} inches, Avg Weight: {avg_weight:.2f} pounds")
+
+# Calculate metrics in the main
+    avg_all_players = calculate_average_height_weight_all_players(cur)
+    avg_by_position = calculate_average_height_weight_by_position(cur)
+
+# Create a dictionary to hold all metrics
+    all_metrics = {
+        'avg_all_players': avg_all_players,
+        'avg_by_position': avg_by_position,
+}
+
+# Write all metrics to a single JSON file
+    write_metrics_to_file(all_metrics, 'all_metrics_nhl.json')
+
+    visualize_data(cur)
 
 if __name__ == "__main__":
     main()
