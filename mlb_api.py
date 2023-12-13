@@ -4,15 +4,6 @@ import json
 import re
 import os
 
-# create connection
-# def create_conn(db_name):
-#     # parameters: name of database
-#     # returns: connection and cursor object
-#     conn = sqlite3.connect(db_name)
-#     cur = conn.cursor()
-#     print(f'Connection to database {db_name} established')
-#     return cur, conn
-
 # get api data as json file
 def create_json(url, json_file):
     # get raw data
@@ -31,8 +22,8 @@ def create_json(url, json_file):
 
     return
 
-# create 3 tables
-    # playerinfo, playerid, heightid
+# create 2 tables
+    # playerinfo, playerid
 def create_tables(conn, cur):
     
     # create table with player ids and names
@@ -42,10 +33,18 @@ def create_tables(conn, cur):
     # create table with playerid, positionid, height, weight
     cur.execute('''CREATE TABLE IF NOT EXISTS mlb_playerinfo 
                 (id INTEGER PRIMARY KEY, pos_id INTEGER, height INTEGER, weight INTEGER)''')
+    
+    # create position id table 
+    position_dict = {1:'P', 2:'C', 3:'1B', 4:'2B', 5:'3B', 6:'SS', 7:'LF', 8:'CF', 9:'RF', 10:'DH', 11:'OF', 12:"2-Way"}
+    cur.execute('CREATE TABLE IF NOT EXISTS mlb_pos_ids (id INTEGER PRIMARY KEY, pos TEXT)')
+    for key, value in position_dict.items():
+        cur.execute('''INSERT OR IGNORE INTO mlb_pos_ids (id, pos)
+                VALUES (?, ?)''',
+                (key, value))
 
     conn.commit()
 
-    print('Created tables mlb_playerids and mlb_playerinfo')
+    print('Created tables mlb_playerids, mlb_playerinfo, and mlb_pos_ids')
     return
 
 # add values from json to database
@@ -123,17 +122,6 @@ def add_values(conn, cur, file_name):
     
     return
 
-def create_position_table(cur, conn):
-    position_dict = {1:'P', 2:'C', 3:'1B', 4:'2B', 5:'3B', 6:'SS', 7:'LF', 8:'CF', 9:'RF', 10:'DH', 11:'OF', 12:"2-Way"}
-    cur.execute('CREATE TABLE IF NOT EXISTS mlb_pos_ids (id INTEGER PRIMARY KEY, pos TEXT)')
-    for key, value in position_dict.items():
-        cur.execute('''INSERT OR IGNORE INTO mlb_pos_ids (id, pos)
-                VALUES (?, ?)''',
-                (key, value))
-    conn.commit()
-    print('Table mlb_pos_ids created')
-    return
-
 def main():
     try:
         # create a connection
@@ -150,7 +138,6 @@ def main():
                 create_json(players_url, json_file)
             # create tables in database
             create_tables(conn, cur)
-            create_position_table(cur, conn)
             # add items to tables
             add_values(conn, cur, json_file)
 
