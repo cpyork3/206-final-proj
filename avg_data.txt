@@ -1,0 +1,30 @@
+{
+  "F-C": {
+    "average_height": 80.60416666666667,
+    "average_weight": 225.28125
+  },
+  "C-F": {
+    "average_height": 81.43636363636364,
+    "average_weight": 232.38181818181818
+  },
+  "C": {
+    "average_height": 83.0774647887324,
+    "average_weight": 243.6338028169014
+  },
+  "G": {
+    "average_height": 74.75210084033614,
+    "average_weight": 188.4390756302521
+  },
+  "F": {
+    "average_height": 79.26646706586827,
+    "average_weight": 217.73652694610777
+  },
+  "G-F": {
+    "average_height": 77.09302325581395,
+    "average_weight": 199.86046511627907
+  },
+  "F-G": {
+    "average_height": 77.95,
+    "average_weight": 207.06666666666666
+  }
+}
