@@ -1,0 +1,33 @@
+{
+  "avg_all_players": {
+    "avg_height": 72.96,
+    "avg_weight": 195.21333333333334
+  },
+  "avg_by_position": [
+    {
+      "position": "C",
+      "avg_height": 72.48,
+      "avg_weight": 190.96
+    },
+    {
+      "position": "D",
+      "avg_height": 73.67123287671232,
+      "avg_weight": 201.17808219178082
+    },
+    {
+      "position": "G",
+      "avg_height": 72.61538461538461,
+      "avg_weight": 187.0
+    },
+    {
+      "position": "LW",
+      "avg_height": 72.83333333333333,
+      "avg_weight": 196.0
+    },
+    {
+      "position": "RW",
+      "avg_height": 72.77777777777777,
+      "avg_weight": 196.8148148148148
+    }
+  ]
+}

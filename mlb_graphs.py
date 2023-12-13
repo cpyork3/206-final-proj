@@ -81,7 +81,7 @@ def write_data(df, file_name = 'mlb_calculations.json'):
 def main():
     try:
         # create a connection
-        with sqlite3.connect("API_beasts.db") as conn:
+        with sqlite3.connect("final_proj.db") as conn:
             print('Connection open')
             # create a cursor
             cur = conn.cursor()
